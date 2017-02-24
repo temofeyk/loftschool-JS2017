@@ -1,90 +1,50 @@
-/* ДЗ 5.1 - DOM Events */
+/* ДЗ 6.1 - Асинхронность и работа с сетью */
 
 /**
- * Функция должна добавлять обработчик fn события eventName к элементу target
+ * Функция должна создавать Promise, который должен быть resolved через seconds секунду после создания
  *
- * @param {string} eventName - имя события, на которое нужно добавить обработчик
- * @param {Element} target - элемент, на который нужно добавить обработчик
- * @param {function} fn - обработчик
+ * @param {number} seconds - количество секунд, через которое Promise должен быть resolved
+ * @return {Promise}
  */
-function addListener(eventName, target, fn) {
-    target.addEventListener(eventName, fn);
+function delayPromise(seconds) {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(), 1000 * seconds); 
+    })
 }
 
 /**
- * Функция должна удалять обработчик fn события eventName у элемента target
+ * Функция должна вернуть Promise, который должен быть разрешен массивом городов, загруженным из
+ * https://raw.githubusercontent.com/smelukov/citiesTest/master/cities.json
+ * Элементы полученного массива должны быть отсортированы по имени города
  *
- * @param {string} eventName - имя события, для которого нужно удалить обработчик
- * @param {Element} target - элемент, у которого нужно удалить обработчик
- * @param {function} fn - обработчик
+ * @return {Promise<Array<{name: String}>>}
  */
-function removeListener(eventName, target, fn) {
-    target.removeEventListener(eventName, fn);
-}
+function loadAndSortTowns() {
+    let url = 'https://raw.githubusercontent.com/smelukov/citiesTest/master/cities.json';
 
-/**
- * Функция должна добавлять к target обработчик события eventName, который должен отменять действие по умолчанию
- *
- * @param {string} eventName - имя события, для которого нужно удалить обработчик
- * @param {Element} target - элемент, на который нужно добавить обработчик
- */
-function skipDefault(eventName, target) {
-    target.addEventListener(eventName, e => e.preventDefault());
-}
+    return new Promise(function(resolve, reject) {
+        let xhr = new XMLHttpRequest();
 
-/**
- * Функция должна эмулировать событие click для элемента target
- *
- * @param {Element} target - элемент, на который нужно добавить обработчик
- */
-function emulateClick(target) {
-    target.dispatchEvent(new Event('click'));
-}
+        function loadHandler() {
+            // Если код ответа сервера не 200, то это ошибка
+            if (xhr.status == 200) {
+                let arr = xhr.response;
 
-/**
- * Функция должна добавить такой обработчик кликов к элементу target
- * который реагирует (вызывает fn) только на клики по элементам BUTTON внутри target
- *
- * @param {Element} target - элемент, на который нужно добавить обработчик
- * @param {function} fn - функция, которую нужно вызвать при клике на элемент BUTTON внутри target
- */
-function delegate(target, fn) {
-
-    let buttonClick = function (event) {
-        let elem = event.target;
-
-        if (elem.tagName === 'BUTTON') {
-            fn();
+                arr.sort((a, b) => (a.name < b.name && -1) || (a.name > b.name && 1) || 0);
+                resolve(arr);
+            } else {
+                reject();  
+            } 
         }
-    }
 
-    target.addEventListener('click', buttonClick);
-}
-
-/**
- * *** Со звездочкой ***
- * Функция должна добавить такой обработчик кликов к элементу target
- * который сработает только один раз и удалится
- * Постарайтесь не создавать глобальных переменных
- *
- * @param {Element} target - элемент, на который нужно добавить обработчик
- * @param {function} fn - обработчик
- */
-function once(target, fn) {
-
-    function clickHandler (event) {
-        fn();
-        event.currentTarget.removeEventListener(event.type, clickHandler);
-    }
-
-    target.addEventListener('click', clickHandler);
+        xhr.addEventListener('load', loadHandler);
+        xhr.responseType = 'json';
+        xhr.open('GET', url);
+        xhr.send();    
+    })
 }
 
 export {
-    addListener,
-    removeListener,
-    skipDefault,
-    emulateClick,
-    delegate,
-    once
+    delayPromise,
+    loadAndSortTowns
 };
