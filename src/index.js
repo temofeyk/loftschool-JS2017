@@ -1,90 +1,237 @@
-/* ДЗ 5.1 - DOM Events */
+require('./index.css');
+let selectedItems = [];
+let items = [];
+let itemsListTemplateFn = require('../items-list.hbs');
+let itemsFilter = '';
+let selectedFilter = '';
+
+let mainContainer = document.querySelector('#main-container');
+let catalogElement = document.querySelector('#catalog');
+let selectedItemsElement = document.querySelector('#selected');
+let itemsFilterInput = document.querySelector('#items-filter');
+let selectedFilterInput = document.querySelector('#selected-filter');
+
+const TO_SELECTED_ROLE = 'toSelected';
+const FROM_SELECTED_ROLE = 'fromSelected';
+
+const STORAGE_SELECTED_ITEMS = 'selectedItems';
 
 /**
- * Функция должна добавлять обработчик fn события eventName к элементу target
+ * Функция должна выполнить авторизацию в VK и вернуть Promise
  *
- * @param {string} eventName - имя события, на которое нужно добавить обработчик
- * @param {Element} target - элемент, на который нужно добавить обработчик
- * @param {function} fn - обработчик
+  * @return {Promise}
  */
-function addListener(eventName, target, fn) {
-    target.addEventListener(eventName, fn);
+function login() {
+    return new Promise(function (resolve, reject) {
+        VK.init({
+            apiId: 5900739
+        });
+        VK.Auth.login(function(result) {
+            if (result.status == 'connected') {
+                resolve();
+            } else {
+                reject();
+            }
+        });
+    });
 }
 
 /**
- * Функция должна удалять обработчик fn события eventName у элемента target
+ * Функция должна  вызвать метод method VK OpenAPI c с параметрами params и вернуть Promise
  *
- * @param {string} eventName - имя события, для которого нужно удалить обработчик
- * @param {Element} target - элемент, у которого нужно удалить обработчик
- * @param {function} fn - обработчик
+ * @return {Promise}
  */
-function removeListener(eventName, target, fn) {
-    target.removeEventListener(eventName, fn);
+function callAPI(method, params) {
+    return new Promise(function(resolve, reject) {
+        VK.api(method, params, function(result) {
+            if (result.error) {
+                reject();
+            } else {
+                resolve(result.response);
+            }
+        });
+    });
 }
 
 /**
- * Функция должна добавлять к target обработчик события eventName, который должен отменять действие по умолчанию
+ * Функция должна проверять встречается ли подстрока chunk в строке full
+ * Проверка должна происходить без учета регистра символов
  *
- * @param {string} eventName - имя события, для которого нужно удалить обработчик
- * @param {Element} target - элемент, на который нужно добавить обработчик
+ * @example
+ * isMatching('Moscow', 'moscow') // true
+ * isMatching('Moscow', 'mosc') // true
+ * isMatching('Moscow', 'cow') // true
+ * isMatching('Moscow', 'SCO') // true
+ * isMatching('Moscow', 'Moscov') // false
+ *
+ * @return {boolean}
  */
-function skipDefault(eventName, target) {
-    target.addEventListener(eventName, e => e.preventDefault());
+function isMatching(full, chunk) {
+    let result = true;
+ 
+    if (full.toLowerCase().indexOf(chunk.toLowerCase()) === -1) {
+        result = false;
+    }
+ 
+    return result;
 }
 
 /**
- * Функция должна эмулировать событие click для элемента target
- *
- * @param {Element} target - элемент, на который нужно добавить обработчик
+ * Функция должна добавить id в глобальный массив selectedItems
+
  */
-function emulateClick(target) {
-    target.dispatchEvent(new Event('click'));
+function addItemId(id) {
+    if (selectedItems.indexOf(id) == -1) {
+        selectedItems.push(id);
+    }    
 }
 
 /**
- * Функция должна добавить такой обработчик кликов к элементу target
- * который реагирует (вызывает fn) только на клики по элементам BUTTON внутри target
- *
- * @param {Element} target - элемент, на который нужно добавить обработчик
- * @param {function} fn - функция, которую нужно вызвать при клике на элемент BUTTON внутри target
+ * Функция должна удалить id из глобального массива selectedItems
+
  */
-function delegate(target, fn) {
+function removeItemId(id) {
+    let idx = selectedItems.indexOf(id);
 
-    let buttonClick = function (event) {
-        let elem = event.target;
+    if (idx > -1) {
+        selectedItems.splice(idx, 1);
+    } 
+}
 
-        if (elem.tagName === 'BUTTON') {
-            fn();
+/**
+ * Функция должна для элемента elem найти родительский элемент с классом 'item' и 
+    вернуть его data-атрибут 'id'
+
+ */
+function getElemId(elem) {
+    let e = elem.closest('.item');
+    
+    return (!e) ? null : e.dataset.id;
+}
+
+/**
+ * Функция должна добавить обработчики для обработки перемещения элементов
+
+ */
+function addListeners() {
+    mainContainer.addEventListener('click', e => {
+        if (!e.target.dataset.role) {
+            return;
         }
-    }
+        let id = getElemId(e.target);
 
-    target.addEventListener('click', buttonClick);
+        if (e.target.dataset.role == TO_SELECTED_ROLE) {
+            addItemId(id);
+        } else if (e.target.dataset.role == FROM_SELECTED_ROLE) {
+            removeItemId(id);            
+        }
+
+        render();
+
+    });
+
+    itemsFilterInput.addEventListener('keyup', () => {
+        itemsFilter = itemsFilterInput.value;
+        render();
+    });
+
+    selectedFilterInput.addEventListener('keyup', () => {
+        selectedFilter = selectedFilterInput.value;
+        render();
+    });
+
+    mainContainer.addEventListener('dragstart', e => {
+        let id = getElemId(e.target);
+
+        if (!id) {
+            return;
+        }
+
+        e.dataTransfer.setData('Text', id);  
+        e.dataTransfer.effectAllowed='move';
+    });
+
+    mainContainer.addEventListener('dragenter', e => {
+        e.preventDefault();
+    });   
+
+    mainContainer.addEventListener('dragover', e => {
+        e.preventDefault();
+    });   
+     
+    selectedItemsElement.addEventListener('drop', e => {
+        e.preventDefault();
+
+        let id = e.dataTransfer.getData('Text');
+
+        addItemId(id);
+        render();     
+        e.stopPropagation();
+    });
+
+    catalogElement.addEventListener('drop', e => {
+        let id = e.dataTransfer.getData('Text');
+
+        removeItemId(id);
+        render();
+        e.stopPropagation();
+    });   
 }
 
 /**
- * *** Со звездочкой ***
- * Функция должна добавить такой обработчик кликов к элементу target
- * который сработает только один раз и удалится
- * Постарайтесь не создавать глобальных переменных
- *
- * @param {Element} target - элемент, на который нужно добавить обработчик
- * @param {function} fn - обработчик
+ * Функция должна перерисовать два списки элементов на странице
+
  */
-function once(target, fn) {
+function render() {
 
-    function clickHandler (event) {
-        fn();
-        event.currentTarget.removeEventListener(event.type, clickHandler);
-    }
+    let options = {
+        // только невыбранные элементы, подходящие под значение фильтра
+        items: items.filter(item => (selectedItems.indexOf(String(item.id)) == -1) && 
+                (itemsFilter == '' || isMatching(item.first_name + item.last_name, itemsFilter))),
+        buttonCaption: '+',
+        buttonRole: TO_SELECTED_ROLE
+    };
 
-    target.addEventListener('click', clickHandler);
+    catalogElement.innerHTML = itemsListTemplateFn(options);
+
+    options = {
+        // только выбранные элементы, подходящие под значение фильтра
+        items: items.filter(item => (selectedItems.indexOf(String(item.id))> -1) && 
+                (selectedFilter == '' || isMatching(item.first_name + item.last_name, selectedFilter))),
+        buttonCaption: 'x',
+        buttonRole: FROM_SELECTED_ROLE
+    };
+ 
+    selectedItemsElement.innerHTML = itemsListTemplateFn(options);    
 }
 
-export {
-    addListener,
-    removeListener,
-    skipDefault,
-    emulateClick,
-    delegate,
-    once
-};
+let loadFriends = document.querySelector('#loadFriends');
+
+/**
+ * Функция должна инициализировать страницу данными data полученными из VK, и данными из localStorage
+
+ */
+function init(data) {
+    loadFriends.parentNode.removeChild(loadFriends);
+
+    addListeners();
+    items = data.items;
+
+    if (localStorage[STORAGE_SELECTED_ITEMS]) {
+        selectedItems = JSON.parse(localStorage[STORAGE_SELECTED_ITEMS]); 
+    }
+    render();
+}
+
+let saveFriends = document.querySelector('#saveFriends');
+
+saveFriends.addEventListener('click', () => {
+    localStorage[STORAGE_SELECTED_ITEMS] = JSON.stringify(selectedItems);
+});
+
+loadFriends.addEventListener('click', () => {
+    login()
+        .then(() => callAPI('friends.get', { v: 5.62, fields: ['city', 'country', 'photo_100'] }))
+        .then(result => init(result))        
+        .catch(() => alert('всё плохо'));
+});
