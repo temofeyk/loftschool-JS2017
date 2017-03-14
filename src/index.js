@@ -205,14 +205,11 @@ function render() {
     selectedItemsElement.innerHTML = itemsListTemplateFn(options);    
 }
 
-let loadFriends = document.querySelector('#loadFriends');
-
 /**
  * Функция должна инициализировать страницу данными data полученными из VK, и данными из localStorage
 
  */
 function init(data) {
-    loadFriends.parentNode.removeChild(loadFriends);
 
     addListeners();
     items = data.items;
@@ -229,9 +226,7 @@ saveFriends.addEventListener('click', () => {
     localStorage[STORAGE_SELECTED_ITEMS] = JSON.stringify(selectedItems);
 });
 
-loadFriends.addEventListener('click', () => {
-    login()
-        .then(() => callAPI('friends.get', { v: 5.62, fields: ['city', 'country', 'photo_100'] }))
-        .then(result => init(result))        
-        .catch(() => alert('всё плохо'));
-});
+login()
+    .then(() => callAPI('friends.get', { v: 5.62, fields: ['city', 'country', 'photo_100'] }))
+    .then(result => init(result))        
+    .catch(() => alert('не удалось получить данные из VK'));
