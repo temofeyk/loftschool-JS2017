@@ -1,0 +1,9 @@
+.singleBallon {
+    display: flex;
+    flex-direction: column;
+}
+
+.feedback-list {
+    height: 60px;
+    overflow: auto;
+}

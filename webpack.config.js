@@ -31,8 +31,10 @@ module.exports = {
         }),
         new ExtractTextPlugin('styles.css'),
         new HtmlPlugin({
-            title: 'Loft School sample project',
-            template: 'index.hbs'
+            title: 'friends editor',
+            template: './src/templates/index.hbs',
+            filename: 'index.html',
+            chunks: ['main']
         }),
         new CleanWebpackPlugin(['dist'])
     ]

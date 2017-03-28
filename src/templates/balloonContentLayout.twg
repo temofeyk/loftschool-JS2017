@@ -1,0 +1,20 @@
+<div class ="singleBallon">
+    <h2 class="ballon_header">{{properties.address}}</h2>
+    <div>Отзывы:</div>
+    <div class="feedback-list">
+        {% if properties.data.length %}             
+            {% for item in properties.data %}
+            <HR>
+            <div>Место: <b>{{item.place}}</b></div> 
+            <div>Пользователь: {{item.name}}</div> 
+            <div>{{item.description}}</div>
+            {% endfor %}
+        {% else %}
+            <div>Отзывов пока нет</div>
+        {% endif %}
+    </div>
+    <input type="text" name="" id="place-input" placeholder="Место">
+    <input type="text" name="" id="name-input" placeholder="Ваше имя">
+    <textarea type="text" name="" id="description-input" class="multiline-input" placeholder="Описание"> </textarea>
+    <button data-x="{{properties.x}}" data-y="{{properties.y}}" data-address="{{properties.address}}" id="add-button">Добавить</button>
+</div>

@@ -16,6 +16,10 @@ module.exports = function() {
         {
             test: /\.(eot|svg|ttf|woff|woff2)$/,
             loader: 'file?name=fonts/[hash].[ext]'
+        },
+        {
+            test: /\.twg$/,
+            use: 'raw-loader'
         }
     ];
 };
